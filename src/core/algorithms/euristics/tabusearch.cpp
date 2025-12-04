@@ -101,17 +101,17 @@ bool TabuSearch::verifier(std::vector<int> nodes)
     return true;
 }
 
-std::list<int> TabuSearch::randomSolution()
+std::vector<int> TabuSearch::randomSolution()
 {
     std::srand(std::time({}));
-    std::vector<int> randomList;
+    std::vector<int> rNodes;
 
     // check feasible & elementary
     do
     {
 
-        randomList.clear();
-        randomList.push_back(s);
+        rNodes.clear();
+        rNodes.push_back(s);
 
         // paga arco guadagna nodo problem->getObj();
 
@@ -121,24 +121,24 @@ std::list<int> TabuSearch::randomSolution()
         // choose next candidate node
         int cap = 0;
 
-        while (!(randomList.back() == t))
+        while (!(rNodes.back() == t))
         {
             int candidate;
             if (cap > maxConsumption)
             {
                 printf("cap: %d, max: %d\n\n\n\n", cap, maxConsumption);
-                randomList.pop_back();
+                rNodes.pop_back();
                 candidate = t;
             }
             else
             {
 
-                std::vector<int> candidates = problem->getNeighbors(randomList.back(), true);
+                std::vector<int> candidates = problem->getNeighbors(rNodes.back(), true);
 
                 if (Parameters::getVerbosity() >= 4)
                 {
 
-                    printf("candidates next to %d: ", randomList.back());
+                    printf("candidates next to %d: ", rNodes.back());
                     for (size_t i = 0; i < candidates.size(); i++)
                     {
                         printf("%d - ", candidates[i]);
@@ -149,18 +149,18 @@ std::list<int> TabuSearch::randomSolution()
                 do
                 {
                     candidate = candidates[std::rand() % candidates.size()];
-                } while (isIn(candidate, randomList));
+                } while (isIn(candidate, rNodes));
 
                 cap = cap + consumption->getNodeCost(candidate);
             }
 
-            randomList.push_back(candidate);
+            rNodes.push_back(candidate);
         }
-    } while (!verifier(randomList));
+    } while (!verifier(rNodes));
 
     // conversion from vector to list
-    std::list<int> list(randomList.begin(), randomList.end());
-    return list;
+
+    return rNodes;
 }
 
 int TabuSearch::computeResult(std::vector<int> nodes)
@@ -178,8 +178,13 @@ int TabuSearch::computeResult(std::vector<int> nodes)
 void TabuSearch::initAlgorithm()
 {
     Path firstRandomPath;
-    firstRandomPath.setTour(randomSolution());
+
+    std::vector<int> randomNodes = randomSolution();
+    std::list<int> list(randomNodes.begin(), randomNodes.end());
+
+    firstRandomPath.setTour(list);
     firstRandomPath.setStatus(PATH_SUPEROPTIMAL);
+    firstRandomPath.setObjective(computeResult(randomNodes));
     addSolution(firstRandomPath);
     updateBestSolution(0);
 }

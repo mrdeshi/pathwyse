@@ -10,7 +10,7 @@ private:
     bool termination;
     bool checkTermination();
     int computeResult(std::vector<int> nodes);
-    std::list<int> randomSolution();
+    std::vector<int> randomSolution();
     bool verifier(std::vector<int> nodes);
     int s;
     int t;
