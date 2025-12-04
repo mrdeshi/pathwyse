@@ -14,7 +14,8 @@ private:
     bool verifier(std::vector<int> nodes);
     int s;
     int t;
-    int size;
+    Resource *consumption;
+    int maxConsumption;
 
 public:
     /** Algorithm management **/

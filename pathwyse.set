@@ -1,4 +1,7 @@
-verbosity = 2
+verbosity =5
+
+a=PWDefault
+b=TabuSearch
 
 problem/memory_threshold = 10000
 
