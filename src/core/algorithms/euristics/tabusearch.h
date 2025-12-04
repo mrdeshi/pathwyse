@@ -3,7 +3,7 @@
 
 #include "algorithms/algorithm.h"
 
-class TabuSearch : Algorithm
+class TabuSearch : public Algorithm
 {
 private:
     std::vector<int> results;
@@ -12,6 +12,9 @@ private:
     int computeResult(std::vector<int> nodes);
     std::list<int> randomSolution();
     bool verifier(std::vector<int> nodes);
+    int s;
+    int t;
+    int size;
 
 public:
     /** Algorithm management **/

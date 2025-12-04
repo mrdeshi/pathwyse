@@ -1,5 +1,6 @@
 #include "tabusearch.h"
 #include <cstdlib>
+#include <unistd.h>
 
 #define TABU_SIZE 50
 
@@ -11,22 +12,29 @@ TabuSearch::TabuSearch(std::string name, Problem *problem)
     : Algorithm(name, problem)
 {
     termination = false;
+    s = problem->getOrigin();
+    t = problem->getDestination();
+    size = problem->getDestination();
     initDataCollection();
+}
+
+TabuSearch::~TabuSearch()
+{
+    collector.writeData();
+    collector_sol.writeData();
 }
 
 bool TabuSearch::verifier(std::vector<int> nodes)
 {
-    int s = problem->getOrigin();
-    int t = problem->getDestination();
-    int size = problem->getNumNodes();
 
     if (nodes.size() != size || nodes.front() != s || nodes.back() != t)
     {
         return false;
     }
 
-    for (size_t node = 0; node < size; node++)
+    for (size_t n = 0; n < size; n++)
     {
+        int node = nodes[n];
         int see = 0;
         for (size_t i = 0; i < size; i++)
         {
@@ -44,12 +52,19 @@ bool TabuSearch::verifier(std::vector<int> nodes)
 
     Resource *consumption = problem->getRes(0); // consumption will decrease in node visit
     int maxCapacity = consumption->getUB();
+
     int cap = 0;
 
     for (size_t i = 0; i < nodes.size(); i++)
     {
         cap = cap + consumption->getNodeCost(nodes[i]);
     }
+    printf("MAX CAPACITY %d \n calculated: %d \n", maxCapacity, cap);
+    Path tmp;
+
+    std::list<int> list(nodes.begin(), nodes.end());
+    tmp.setTour(list);
+    std::cout << (tmp.getTourAsString()) << std::endl;
 
     // path not feasible
     if (cap > maxCapacity)
@@ -62,14 +77,14 @@ bool TabuSearch::verifier(std::vector<int> nodes)
 
 std::list<int> TabuSearch::randomSolution()
 {
-    int s = problem->getOrigin();
-    int t = problem->getDestination();
-    int size = problem->getNumNodes();
+
+    printf("NUMBER OF NODES %d", size);
     std::vector<int> randomList;
 
     // check feasible & elementary
     while (!verifier(randomList))
     {
+
         randomList.clear();
         randomList.push_back(s);
 
@@ -82,12 +97,14 @@ std::list<int> TabuSearch::randomSolution()
 
         for (size_t i = 0; i < size - 2; i++)
         {
+            std::srand(std::time({}));
             std::vector<int> candidates = problem->getNeighbors(randomList.back(), true);
-            int candidate = candidates[rand() % candidates.size()];
+            int candidate = candidates[std::rand() % candidates.size()];
             randomList.push_back(candidate);
         }
 
         randomList.push_back(t);
+        sleep(1);
     }
 
     // conversion from vector to list
@@ -115,6 +132,7 @@ void TabuSearch::initAlgorithm()
 {
     Path firstRandomPath;
     firstRandomPath.setTour(randomSolution());
+    firstRandomPath.setStatus(PATH_SUPEROPTIMAL);
     addSolution(firstRandomPath);
     updateBestSolution(0);
 }
@@ -145,6 +163,7 @@ bool TabuSearch::checkTermination()
 
 void TabuSearch::solve()
 {
+
     if (Parameters::getVerbosity() >= 4)
         std::cout << "Solving..." << std::endl;
 
@@ -156,7 +175,7 @@ void TabuSearch::solve()
         collector.startGlobalTime();
 
         // Check Termination
-        termination = checkTermination();
+        // termination = checkTermination();
 
         termination = true;
 
