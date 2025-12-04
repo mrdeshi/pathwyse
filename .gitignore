@@ -1,3 +1,4 @@
 build/*
 src/wrapper_python/*
 bin/*
+.vscode/

@@ -5,36 +5,36 @@
 #include "LM_default.h"
 #include "algorithms/labels/label_advanced.h"
 
-class PWDefault: public Algorithm {
+class PWDefault : public Algorithm
+{
 
 public:
-
     /** Algorithm management **/
-    //Constructors and destructors
-    PWDefault(std::string name, Problem* problem);
+    // Constructors and destructors
+    PWDefault(std::string name, Problem *problem);
     ~PWDefault();
 
-    //Init and reset
+    // Init and reset
     void initAlgorithm();
     void readConfiguration();
 
     void resetIteration();
-    void resetAlgorithm(int reset_level);
+    void resetAlgorithm(int reset_level) override;
 
-    //Solve
+    // Solve
     void solve() override;
     void labeling(bool forward = true, bool backward = true);
-    void extend(LabelAdv* candidate);
+    void extend(LabelAdv *candidate);
     bool checkTermination();
 
-    //Path building
+    // Path building
     void managePaths();
 
     /** Relaxation management **/
-    void buildNG();            //build NG sets
-    bool DssrStandard();                //DSSR
-    bool DssrRestricted();     //iteratively DSSR forbid only repeating customers in cycles
-    bool NgRestricted();       //iteratively forbid only cycles that are not part of an NG route
+    void buildNG();        // build NG sets
+    bool DssrStandard();   // DSSR
+    bool DssrRestricted(); // iteratively DSSR forbid only repeating customers in cycles
+    bool NgRestricted();   // iteratively forbid only cycles that are not part of an NG route
     std::string getRelaxationName();
 
     /** Debug **/
@@ -46,27 +46,26 @@ public:
     void writeData();
 
 protected:
+    // Label Manager
+    LMDefault *label_manager;
 
-    //Label Manager
-    LMDefault* label_manager;
-
-    //Parameters (Configuration)
-    float timelimit;            //timelimit (s)
-    bool use_visited;           //check
-    int dssr;                   //DSSR mode
-    int ng;                     //NG mode
+    // Parameters (Configuration)
+    float timelimit;  // timelimit (s)
+    bool use_visited; // check
+    int dssr;         // DSSR mode
+    int ng;           // NG mode
     int ng_size;
     bool earlyjoin;
     unsigned long long int earlyjoin_step;
 
-    //Unreachable nodes
+    // Unreachable nodes
     std::vector<Bitset> unreachable_active;
     std::vector<Bitset> unreachable_ng;
 
-    //Parameters (Data collection)
+    // Parameters (Data collection)
     int unreachable_max_count, previous_unreachable_max_count;
     bool timeout, ng_compliant;
     int it_ext_fw, it_ext_bw, ins_attempts_fw, ins_attempts_bw;
 };
 
-#endif //SPPRCLIB_DP_BIDIRECTIONAL_H
+#endif // SPPRCLIB_DP_BIDIRECTIONAL_H
