@@ -1,6 +1,7 @@
 #include "tabusearch.h"
 #include <cstdlib>
 #include <unistd.h>
+#include <algorithm>
 
 #define TABU_SIZE 50
 
@@ -16,6 +17,8 @@ TabuSearch::TabuSearch(std::string name, Problem *problem)
     t = problem->getDestination();
     consumption = problem->getRes(0); // consumption will decrease in node visit
     maxConsumption = consumption->getUB();
+
+    resource = problem->getObj();
     initDataCollection();
 }
 
@@ -52,6 +55,82 @@ static bool noCommons(std::vector<int> a, std::vector<int> b)
     }
     return true;
 }
+
+// tabu
+struct Switch
+{
+    int a;
+    int b;
+    bool operator==(const Switch &other) const
+    {
+        // Compare values
+        return (a == other.a && b == other.b) || (a == other.b && b == other.a);
+        ;
+    }
+};
+
+static bool is_switch_equal(Switch a, Switch b)
+{
+    return (a.a == b.a && a.b == b.b) || (a.a == b.b && a.b == b.a);
+}
+
+std::list<Switch> tabu;
+std::vector<int> dyn;
+
+static bool isSwitch_inTabu(Switch s)
+{
+    return (std::find(tabu.begin(), tabu.end(), s) != tabu.end());
+}
+
+// simply impute i is left to j -> swap if new path is optimal
+bool TabuSearch::swap(std::vector<int> nodes, int i, int j)
+{
+    // cannot switch s or t obv
+    if (nodes[i] == s || nodes[i] == t)
+    {
+        return false;
+    }
+
+    // first node to swap isn't in the path todo ask prof if it is too slow
+    if (!isIn(i, nodes))
+    {
+        return false;
+    }
+    int before_swap_resource = resource->getArcCost(nodes[i - 1], nodes[i]) + resource->getArcCost(nodes[i], nodes[i + 1]) - resource->getNodeCost(nodes[i]);
+    int after_swap_resource = resource->getArcCost(nodes[i - 1], j) + resource->getArcCost(j, nodes[i - 1]) - resource->getNodeCost(j);
+
+    int delta = before_swap_resource - after_swap_resource;
+
+    // good choice
+    if (delta > 0)
+    {
+        printf("before: %d after: %d -> delta=%d\n", computeResult(nodes), after_swap_resource, delta);
+        Switch change;
+        change.a = nodes[i];
+        change.b = j;
+
+        // tabu rule, cannot apply change
+        if (isSwitch_inTabu(change))
+        {
+            return false;
+        }
+
+        tabu.push_back(change);
+        if (tabu.size() == TABU_SIZE + 1)
+        {
+            printf("TABU MAX\n");
+            tabu.pop_front();
+        }
+        return true;
+    }
+    // bad change
+    else
+    {
+        return false;
+    }
+}
+
+// tabu
 
 bool TabuSearch::verifier(std::vector<int> nodes)
 {
@@ -106,6 +185,8 @@ std::vector<int> TabuSearch::randomSolution()
     std::srand(std::time({}));
     std::vector<int> rNodes;
 
+    int maxNodes = problem->getNumNodes();
+
     // check feasible & elementary
     do
     {
@@ -124,9 +205,8 @@ std::vector<int> TabuSearch::randomSolution()
         while (!(rNodes.back() == t))
         {
             int candidate;
-            if (cap > maxConsumption)
+            if (cap > maxConsumption || rNodes.size() == maxNodes - 1)
             {
-                printf("cap: %d, max: %d\n\n\n\n", cap, maxConsumption);
                 rNodes.pop_back();
                 candidate = t;
             }
@@ -170,21 +250,26 @@ int TabuSearch::computeResult(std::vector<int> nodes)
 
     for (size_t i = 0; i < nodes.size() - 1; i++)
     {
-        result = result - problem->getObj()->getNodeCost(nodes[i]) + problem->getObj()->getArcCost(nodes[i], nodes[i + 1]);
+        result = result - resource->getNodeCost(nodes[i]) + resource->getArcCost(nodes[i], nodes[i + 1]);
     }
     return result;
 }
 
+Path TabuSearch::construct(std::vector<int> nodes)
+{
+    Path p;
+    std::list<int> list(nodes.begin(), nodes.end());
+    p.setTour(list);
+    p.setStatus(PATH_SUPEROPTIMAL);
+    p.setObjective(computeResult(nodes));
+    return p;
+}
+
 void TabuSearch::initAlgorithm()
 {
-    Path firstRandomPath;
-
     std::vector<int> randomNodes = randomSolution();
-    std::list<int> list(randomNodes.begin(), randomNodes.end());
-
-    firstRandomPath.setTour(list);
-    firstRandomPath.setStatus(PATH_SUPEROPTIMAL);
-    firstRandomPath.setObjective(computeResult(randomNodes));
+    dyn = randomNodes;
+    Path firstRandomPath = construct(randomNodes);
     addSolution(firstRandomPath);
     updateBestSolution(0);
 }
@@ -192,21 +277,21 @@ void TabuSearch::initAlgorithm()
 void TabuSearch::resetAlgorithm(int reset_level)
 {
     // Initializes bounds
-    Algorithm::initAlgorithm();
     setStatus(ALGO_READY);
 
-    // Resets solutions
-    best_solution_id = -1;
     solutions.clear();
 
     // Resets data collection and extra parameters
     collector.resetTimesCumulative();
     termination = false;
+    initAlgorithm();
 }
 
 bool TabuSearch::checkTermination()
 {
-    if (results[best_solution_id - 1] - results[best_solution_id] < 2)
+    //((results[best_solution_id - 1] - results[best_solution_id]) < 2) ||
+    // printf("%f\n", collector.getGlobalTimeNow());
+    if (collector.getGlobalTimeNow() > 2.0f)
     {
         return true;
     }
@@ -221,19 +306,38 @@ void TabuSearch::solve()
 
     setStatus(ALGO_OPTIMIZING);
     initAlgorithm();
-
-    while (not termination)
+    collector.startGlobalTime();
+    std::srand(std::time({}));
+    do
     {
-        collector.startGlobalTime();
+        iterations++;
+        int swaps = 0;
+
+        int i = rand() % dyn.size();
+        int j = rand() % problem->getNumNodes();
+        printf("iterations=%d i=%d j=%d swap=%d\n", iterations, i, j, swaps);
+
+        if (swap(dyn, i, j))
+        {
+            printf("SWAP\n");
+            swaps++;
+            dyn[i] = j;
+
+            Path r = construct(dyn);
+            if (r.getObjective() > getBestSolution()->getObjective())
+            {
+                solutions.push_back(r);
+                updateBestSolution(dyn.size() - 1);
+            }
+        }
 
         // Check Termination
-        // termination = checkTermination();
+        termination = checkTermination();
 
-        termination = true;
+    } while (not termination);
 
-        collector.stopGlobalTime();
-        // s collectData();
-    }
+    collector.stopGlobalTime();
+    // s collectData();
 
     if (Parameters::getVerbosity() >= 3)
         std::cout << "Solving complete" << std::endl;

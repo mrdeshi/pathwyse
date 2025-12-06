@@ -12,9 +12,13 @@ private:
     int computeResult(std::vector<int> nodes);
     std::vector<int> randomSolution();
     bool verifier(std::vector<int> nodes);
+    bool swap(std::vector<int> nodes, int i, int j);
+    Path construct(std::vector<int> nodes);
+
     int s;
     int t;
     Resource *consumption;
+    Resource *resource;
     int maxConsumption;
 
 public:
