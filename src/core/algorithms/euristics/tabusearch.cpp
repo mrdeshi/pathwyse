@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #define TABU_SIZE 50
+#define TRIES 10
 
 // UTILS
 // collectSoluton(id)
@@ -82,8 +83,8 @@ static bool isSwitch_inTabu(Switch s)
     return (std::find(tabu.begin(), tabu.end(), s) != tabu.end());
 }
 
-// simply impute i is left to j -> swap if new path is optimal
-bool TabuSearch::swap(std::vector<int> nodes, int i, int j)
+// simply impute i is to be swapped with node -> swap if new path is better
+bool TabuSearch::swap(std::vector<int> nodes, int i, int node)
 {
     // cannot switch s or t obv
     if (nodes[i] == s || nodes[i] == t)
@@ -92,33 +93,45 @@ bool TabuSearch::swap(std::vector<int> nodes, int i, int j)
     }
 
     // first node to swap isn't in the path todo ask prof if it is too slow
-    if (!isIn(i, nodes))
-    {
-        return false;
-    }
-    int before_swap_resource = resource->getArcCost(nodes[i - 1], nodes[i]) + resource->getArcCost(nodes[i], nodes[i + 1]) - resource->getNodeCost(nodes[i]);
-    int after_swap_resource = resource->getArcCost(nodes[i - 1], j) + resource->getArcCost(j, nodes[i - 1]) - resource->getNodeCost(j);
+    // if (!isIn(i, nodes))
+    //{
+    //   return false;
+    //}
+
+    int before_swap_resource = resource->getArcCost(nodes[i - 1], nodes[i]) + resource->getArcCost(nodes[i], nodes[i + 1]) + resource->getNodeCost(nodes[i]);
+    int after_swap_resource = resource->getArcCost(nodes[i - 1], node) + resource->getArcCost(node, nodes[i - 1]) + resource->getNodeCost(node);
+
+    int ic = consumption->getNodeCost(nodes[i]);
+    int nodec = consumption->getNodeCost(node);
 
     int delta = before_swap_resource - after_swap_resource;
 
+    int r = computeResult(nodes);
+    nodes[i] = node;
+
+    int a = computeResult(nodes);
+
+    // printf("before: %d after: %d -> delta=%d\n", r, a, r - a);
+
     // good choice
-    if (delta > 0)
+    if (delta > 0 && nodec < ic)
     {
-        printf("before: %d after: %d -> delta=%d\n", computeResult(nodes), after_swap_resource, delta);
+
         Switch change;
         change.a = nodes[i];
-        change.b = j;
+        change.b = node;
 
         // tabu rule, cannot apply change
         if (isSwitch_inTabu(change))
         {
+            printf("swap: tabu found\n");
             return false;
         }
 
         tabu.push_back(change);
         if (tabu.size() == TABU_SIZE + 1)
         {
-            printf("TABU MAX\n");
+            // printf("TABU MAX\n");
             tabu.pop_front();
         }
         return true;
@@ -180,17 +193,23 @@ bool TabuSearch::verifier(std::vector<int> nodes)
     return true;
 }
 
-std::vector<int> TabuSearch::randomSolution()
+std::vector<int> TabuSearch::randomSolution(int lenght)
 {
     std::srand(std::time({}));
     std::vector<int> rNodes;
 
     int maxNodes = problem->getNumNodes();
+    int tries = 0;
 
     // check feasible & elementary
     do
     {
+        if (tries > TRIES && lenght != -1)
+        {
+            return randomSolution(lenght++);
+        }
 
+        tries++;
         rNodes.clear();
         rNodes.push_back(s);
 
@@ -212,7 +231,6 @@ std::vector<int> TabuSearch::randomSolution()
             }
             else
             {
-
                 std::vector<int> candidates = problem->getNeighbors(rNodes.back(), true);
 
                 if (Parameters::getVerbosity() >= 4)
@@ -236,7 +254,7 @@ std::vector<int> TabuSearch::randomSolution()
 
             rNodes.push_back(candidate);
         }
-    } while (!verifier(rNodes));
+    } while (!verifier(rNodes) && (rNodes.size() != lenght || lenght == -1));
 
     // conversion from vector to list
 
@@ -250,8 +268,9 @@ int TabuSearch::computeResult(std::vector<int> nodes)
 
     for (size_t i = 0; i < nodes.size() - 1; i++)
     {
-        result = result - resource->getNodeCost(nodes[i]) + resource->getArcCost(nodes[i], nodes[i + 1]);
+        result = result + resource->getNodeCost(nodes[i]) + resource->getArcCost(nodes[i], nodes[i + 1]);
     }
+    result = result + resource->getNodeCost(nodes[nodes.size() - 1]);
     return result;
 }
 
@@ -267,7 +286,7 @@ Path TabuSearch::construct(std::vector<int> nodes)
 
 void TabuSearch::initAlgorithm()
 {
-    std::vector<int> randomNodes = randomSolution();
+    std::vector<int> randomNodes = randomSolution(3);
     dyn = randomNodes;
     Path firstRandomPath = construct(randomNodes);
     addSolution(firstRandomPath);
@@ -308,26 +327,47 @@ void TabuSearch::solve()
     initAlgorithm();
     collector.startGlobalTime();
     std::srand(std::time({}));
+    int swaps = 0;
+    int lenght = dyn.size();
     do
     {
-        iterations++;
-        int swaps = 0;
+        // candidate selection
 
         int i = rand() % dyn.size();
-        int j = rand() % problem->getNumNodes();
-        printf("iterations=%d i=%d j=%d swap=%d\n", iterations, i, j, swaps);
+        int candidate = rand() % (problem->getNumNodes());
 
-        if (swap(dyn, i, j))
+        if (dyn[i] == candidate || (isIn(candidate, dyn)))
         {
-            printf("SWAP\n");
+            continue;
+        }
+        iterations++;
+
+        if (Parameters::getVerbosity() >= 4)
+        {
+            printf("------------current dyn------------\n");
+            for (size_t i = 0; i < dyn.size(); i++)
+            {
+                printf("%d -> ", dyn[i]);
+            }
+
+            printf("\niterations=%d i=%d candidate=%d swap=%d\n", iterations, i, candidate, swaps);
+        }
+
+        if (swap(dyn, i, candidate))
+        {
             swaps++;
-            dyn[i] = j;
+            dyn[i] = candidate;
 
             Path r = construct(dyn);
-            if (r.getObjective() > getBestSolution()->getObjective())
+            if (r.getObjective() < getBestSolution()->getObjective())
             {
+
+                if (Parameters::getVerbosity() >= 4)
+                {
+                    printf("new solution:= %d\n", r.getObjective());
+                }
                 solutions.push_back(r);
-                updateBestSolution(dyn.size() - 1);
+                updateBestSolution(solutions.size() - 1);
             }
         }
 

@@ -10,9 +10,9 @@ private:
     bool termination;
     bool checkTermination();
     int computeResult(std::vector<int> nodes);
-    std::vector<int> randomSolution();
+    std::vector<int> randomSolution(int lenght);
     bool verifier(std::vector<int> nodes);
-    bool swap(std::vector<int> nodes, int i, int j);
+    bool swap(std::vector<int> nodes, int i, int node);
     Path construct(std::vector<int> nodes);
 
     int s;
