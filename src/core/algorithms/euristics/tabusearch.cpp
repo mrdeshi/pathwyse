@@ -4,7 +4,7 @@
 #include <algorithm>
 
 #define TABU_SIZE 50
-#define TRIES 10
+#define TRIES 1000000000
 
 // UTILS
 // collectSoluton(id)
@@ -204,6 +204,7 @@ std::vector<int> TabuSearch::randomSolution(int lenght)
     // check feasible & elementary
     do
     {
+        printf("tries=%d\n", tries);
         if (tries > TRIES && lenght != -1)
         {
             return randomSolution(lenght++);
@@ -254,9 +255,15 @@ std::vector<int> TabuSearch::randomSolution(int lenght)
 
             rNodes.push_back(candidate);
         }
-    } while (!verifier(rNodes) && (rNodes.size() != lenght || lenght == -1));
 
-    // conversion from vector to list
+    } while ((!verifier(rNodes) || rNodes.size() != lenght) && lenght != -1);
+
+    printf("\n=================TRY================ lenght:%d\n", rNodes.size());
+
+    for (size_t i = 0; i < rNodes.size(); i++)
+    {
+        printf("%d -> ", rNodes[i]);
+    }
 
     return rNodes;
 }
@@ -286,7 +293,7 @@ Path TabuSearch::construct(std::vector<int> nodes)
 
 void TabuSearch::initAlgorithm()
 {
-    std::vector<int> randomNodes = randomSolution(3);
+    std::vector<int> randomNodes = randomSolution(-1); // test others
     dyn = randomNodes;
     Path firstRandomPath = construct(randomNodes);
     addSolution(firstRandomPath);
@@ -321,7 +328,8 @@ void TabuSearch::solve()
 {
 
     if (Parameters::getVerbosity() >= 4)
-        std::cout << "Solving..." << std::endl;
+        std::cout
+            << "Solving..." << std::endl;
 
     setStatus(ALGO_OPTIMIZING);
     initAlgorithm();
