@@ -61,8 +61,11 @@ set(
         core/algorithms/dynamic_programming/PW_acyclic/LM_acyclic.h
         core/algorithms/dynamic_programming/PW_acyclic/LM_acyclic.cpp
 
+        core/algorithms/euristics/metaheuristic.h
+        core/algorithms/euristics/metaheuristic.cpp
         core/algorithms/euristics/tabusearch.h
         core/algorithms/euristics/tabusearch.cpp
+        
 
         core/utils/bitset.h
         core/utils/bitset.cpp

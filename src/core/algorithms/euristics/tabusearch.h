@@ -1,39 +1,28 @@
-#ifndef SIMULATED_ANNEALING
-#define SIMULATED_ANNEALING
+#ifndef TABU_S
+#define TABU_S
 
-#include "algorithms/algorithm.h"
+#include "metaheuristic.h"
 
-class TabuSearch : public Algorithm
-{
-private:
-    std::vector<int> results;
-    bool termination;
-    bool checkTermination();
-    int computeResult(std::vector<int> nodes);
-    std::vector<int> randomSolution(int lenght);
-    bool verifier(std::vector<int> nodes);
-    bool swap(std::vector<int> nodes, int i, int node);
-    Path construct(std::vector<int> nodes);
+class TabuSearch : public MetaHeuristic {
+    struct Switch {
+        int a;
+        int b;
+        bool operator==(const Switch& other) const {
+            // Compare values
+            return (a == other.a && b == other.b) || (a == other.b && b == other.a);
+        }
+    };
 
-    int s;
-    int t;
-    Resource *consumption;
-    Resource *resource;
-    int maxConsumption;
+   private:
+    bool is_switch_equal(Switch a, Switch b);
+    bool isSwitch_inTabu(Switch s);
+    bool swap(std::vector<int> nodes, int i, int node) override;
+    std::list<Switch> tabu;
 
-public:
+   public:
     /** Algorithm management **/
     // Constructors and destructors
-    TabuSearch(std::string name, Problem *problem);
+    TabuSearch(std::string name, Problem* problem);
     ~TabuSearch();
-
-    // Init and reset
-    void initAlgorithm();
-
-    void resetAlgorithm(int reset_level) override;
-
-    // Solve
-    void solve() override;
 };
-
-#endif // SIMULATED_ANNEALING
+#endif  // TABU_S
