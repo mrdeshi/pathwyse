@@ -1,4 +1,5 @@
 #include "solver.h"
+
 #include <filesystem>
 
 /** Solver Management **/
@@ -6,8 +7,7 @@
 /**
  * Solver Constructor. Builds the solver.
  */
-Solver::Solver()
-{
+Solver::Solver() {
     setStatus(SOLVER_START);
     solver_version = "0.1";
     optimization_round = 0;
@@ -21,12 +21,11 @@ Solver::Solver()
 /**
  * Solver Deconstructor. Destroys the solver.
  */
-Solver::~Solver()
-{
+Solver::~Solver() {
     delete main_algorithm;
     delete problem;
 
-    for (auto &a : ensemble_algorithms)
+    for (auto& a : ensemble_algorithms)
         delete a;
 }
 
@@ -35,8 +34,7 @@ Solver::~Solver()
 /**
  * Prints welcome message and version to console.
  */
-void Solver::printWelcome()
-{
+void Solver::printWelcome() {
     if (Parameters::getVerbosity() < 0)
         return;
 
@@ -49,8 +47,7 @@ void Solver::printWelcome()
  *
  * @param file_path - Configuration file path.
  */
-void Solver::readConfiguration(std::string file_path)
-{
+void Solver::readConfiguration(std::string file_path) {
     Parameters::readParameters(file_path);
     default_instance = Parameters::getInstancePath();
     main_algorithm_name = Parameters::getMainAlgorithmName();
@@ -61,8 +58,7 @@ void Solver::readConfiguration(std::string file_path)
 /**
  * Setups output folders for data collection.
  */
-void Solver::setupOutput()
-{
+void Solver::setupOutput() {
     // Setup solution collector
     collector = DataCollector("Solutions");
     std::cout << std::fixed;
@@ -74,8 +70,7 @@ void Solver::setupOutput()
     auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     std::ostringstream oss;
     oss << std::put_time(std::localtime(&now), "%F-%T");
-    if (oss.str().length() <= 1)
-    {
+    if (oss.str().length() <= 1) {
         oss.str("");
         oss.clear();
         oss << std::put_time(std::localtime(&now), "%Y-%m-%d_%H-%M-%S");
@@ -99,8 +94,7 @@ void Solver::setupOutput()
  *
  * @param verbosity - Verbosity level.
  */
-void Solver::setConsoleVerbosity(int verbosity)
-{
+void Solver::setConsoleVerbosity(int verbosity) {
     Parameters::setVerbosity(verbosity);
 }
 
@@ -111,8 +105,7 @@ void Solver::setConsoleVerbosity(int verbosity)
  *
  * @param file_name - Name of the problem file.
  */
-void Solver::readProblem(std::string file_name)
-{
+void Solver::readProblem(std::string file_name) {
     problem = new Problem();
 
     if (file_name.empty())
@@ -128,8 +121,7 @@ void Solver::readProblem(std::string file_name)
  *
  * @param problem - Problem object (pointer).
  */
-void Solver::setCustomProblem(Problem &problem)
-{
+void Solver::setCustomProblem(Problem& problem) {
     this->problem = &problem;
     scaleData();
     setStatus(SOLVER_READY);
@@ -140,8 +132,7 @@ void Solver::setCustomProblem(Problem &problem)
  *
  * @return int - Number of nodes in the network.
  */
-int Solver::getNumberOfNodes()
-{
+int Solver::getNumberOfNodes() {
     return problem ? problem->getNumNodes() : 0;
 }
 
@@ -150,8 +141,7 @@ int Solver::getNumberOfNodes()
  *
  * @param cost - Cost value.
  */
-void Solver::setInitCost(int cost)
-{
+void Solver::setInitCost(int cost) {
     if (problem)
         problem->getObj()->setInitValue(cost);
 }
@@ -162,8 +152,7 @@ void Solver::setInitCost(int cost)
  * @param id - Id of the node.
  * @param cost - Node cost.
  */
-void Solver::setNodeCost(int id, int cost)
-{
+void Solver::setNodeCost(int id, int cost) {
     if (problem)
         problem->getObj()->setNodeCost(id, cost);
 }
@@ -173,8 +162,7 @@ void Solver::setNodeCost(int id, int cost)
  *
  * @param costs - Vector of costs to assing to problem nodes.
  */
-void Solver::setNodeCost(std::vector<int> costs)
-{
+void Solver::setNodeCost(std::vector<int> costs) {
     if (problem)
         problem->getObj()->setNodeCosts(costs);
 }
@@ -182,25 +170,21 @@ void Solver::setNodeCost(std::vector<int> costs)
 /**
  * Scales data function (objective, resource or everything). Makes use of scaling parameter.
  */
-void Solver::scaleData()
-{
+void Solver::scaleData() {
     if (not Parameters::isScalingOverridden())
         return;
 
     std::string target = Parameters::getScalingTarget();
     if (target == "objective")
         problem->scaleObjective(Parameters::getScaling());
-    else if (target.substr(0, 3) == "res" and target.length() >= 4)
-    {
+    else if (target.substr(0, 3) == "res" and target.length() >= 4) {
         int index = target[3] - '0';
         if (index < problem->getNumRes())
             problem->scaleResource(index, Parameters::getScaling());
-    }
-    else
+    } else
         problem->scaleAllData(Parameters::getScaling());
 
-    if (Parameters::getVerbosity() >= 1)
-    {
+    if (Parameters::getVerbosity() >= 1) {
         std::cout << "Performed scaling on target: " << target << std::endl;
         std::cout << "Scaling: " << Parameters::getScaling() << std::endl;
     }
@@ -209,8 +193,7 @@ void Solver::scaleData()
 /**
  * Reverts scaled data back to the original values.
  */
-void Solver::revertScaleData()
-{
+void Solver::revertScaleData() {
     if (not Parameters::isScalingOverridden())
         return;
 
@@ -231,14 +214,11 @@ void Solver::revertScaleData()
 /**
  * Setups algorithms.
  */
-void Solver::setupAlgorithms()
-{
-    if (problem)
-    {
+void Solver::setupAlgorithms() {
+    if (problem) {
         setMainAlgorithm(main_algorithm_name);
         setEnsemble(ensemble_algorithms_names);
-    }
-    else
+    } else
         std::cout << "Warning: no problem defined" << std::endl;
 }
 
@@ -248,13 +228,14 @@ void Solver::setupAlgorithms()
  * @param name - Algorithm name.
  * @return Algorithm* - New algorithm pointer.
  */
-Algorithm *Solver::createAlgorithm(std::string name)
-{
+Algorithm* Solver::createAlgorithm(std::string name) {
     if (name == "PWAcyclic")
         return new PWAcyclic(name, problem);
 
     else if (name == "TabuSearch")
         return new TabuSearch(name, problem);
+    else if (name == "SimulatedAnnealing")
+        return new SimulatedAnnealing(name, problem);
     else
         return new PWDefault(name, problem);
 }
@@ -266,8 +247,7 @@ Algorithm *Solver::createAlgorithm(std::string name)
  *
  * @param name - Algorithm name.
  */
-void Solver::setMainAlgorithm(std::string name)
-{
+void Solver::setMainAlgorithm(std::string name) {
     delete main_algorithm;
     main_algorithm = createAlgorithm(name);
 }
@@ -277,8 +257,7 @@ void Solver::setMainAlgorithm(std::string name)
  *
  * @param names - Names of algorithms to add to ensemble.
  */
-void Solver::setEnsemble(std::vector<std::string> names)
-{
+void Solver::setEnsemble(std::vector<std::string> names) {
     // Reset Data Structure
     clearEnsemble();
 
@@ -291,8 +270,7 @@ void Solver::setEnsemble(std::vector<std::string> names)
  *
  * @param name - Name of the algorithm to add to the ensemble.
  */
-void Solver::addEnsembleAlgorithm(std::string name)
-{
+void Solver::addEnsembleAlgorithm(std::string name) {
     ensemble_algorithms.emplace_back(createAlgorithm(name));
 }
 
@@ -302,10 +280,8 @@ void Solver::addEnsembleAlgorithm(std::string name)
  * @param id - Position of the algorithm in the ensemble to change.
  * @param name - Name of the new algorithm.
  */
-void Solver::changeEnsembleAlgorithm(int id, std::string name)
-{
-    if (id < ensemble_algorithms.size())
-    {
+void Solver::changeEnsembleAlgorithm(int id, std::string name) {
+    if (id < ensemble_algorithms.size()) {
         delete ensemble_algorithms[id];
         ensemble_algorithms[id] = createAlgorithm(name);
     }
@@ -314,14 +290,12 @@ void Solver::changeEnsembleAlgorithm(int id, std::string name)
 /**
  * Solves Problem with either main or ensemble algorithms.
  */
-void Solver::solve()
-{
+void Solver::solve() {
     optimization_round++;
 
     setStatus(SOLVER_BUSY);
 
-    if (Parameters::getVerbosity() >= 0)
-    {
+    if (Parameters::getVerbosity() >= 0) {
         std::cout << "Solving problem..." << std::endl;
         if (Parameters::getVerbosity() >= 1)
             std::cout << "Algorithm mode: " << (isEnsembleUsed() ? "ensemble" : "main algorithm") << std::endl;
@@ -339,8 +313,7 @@ void Solver::solve()
 /**
  * Solves Problem with ensembled algorithms.
  */
-void Solver::solveEnsemble()
-{
+void Solver::solveEnsemble() {
     for (int id = 0; id < ensemble_algorithms.size(); id++)
         solveAlgorithm(id);
 }
@@ -350,9 +323,8 @@ void Solver::solveEnsemble()
  *
  * @param id - Identifier of the algorithm to solve. If id is equal to -1 use the main algorithm, otherwise use the id-th algorithm of the ensemble.
  */
-void Solver::solveAlgorithm(int id)
-{
-    Algorithm *algorithm;
+void Solver::solveAlgorithm(int id) {
+    Algorithm* algorithm;
 
     if (id == MAIN_ALGORITHM)
         algorithm = main_algorithm;
@@ -379,8 +351,7 @@ void Solver::solveAlgorithm(int id)
  *
  * @param reset_level - Reset level.
  */
-void Solver::resetMainAlgorithm(int reset_level)
-{
+void Solver::resetMainAlgorithm(int reset_level) {
     if (main_algorithm)
         main_algorithm->resetAlgorithm(reset_level);
 }
@@ -391,8 +362,7 @@ void Solver::resetMainAlgorithm(int reset_level)
  * @param id - Ensemble algorithm position to reset.
  * @param reset_level - Reset level.
  */
-void Solver::resetEnsembleAlgorithm(int id, int reset_level)
-{
+void Solver::resetEnsembleAlgorithm(int id, int reset_level) {
     if (id < ensemble_algorithms.size() and ensemble_algorithms[id])
         ensemble_algorithms[id]->resetAlgorithm(reset_level);
 }
@@ -402,9 +372,8 @@ void Solver::resetEnsembleAlgorithm(int id, int reset_level)
  *
  * @param reset_level - Reset level.
  */
-void Solver::resetEnsemble(int reset_level)
-{
-    for (auto &a : ensemble_algorithms)
+void Solver::resetEnsemble(int reset_level) {
+    for (auto& a : ensemble_algorithms)
         a->resetAlgorithm(reset_level);
 }
 
@@ -413,8 +382,7 @@ void Solver::resetEnsemble(int reset_level)
 /**
  * Clears main algorithm.
  */
-void Solver::clearMainAlgorithm()
-{
+void Solver::clearMainAlgorithm() {
     delete main_algorithm;
     main_algorithm = nullptr;
 }
@@ -422,9 +390,8 @@ void Solver::clearMainAlgorithm()
 /**
  * Clears algorithms in the ensemble.
  */
-void Solver::clearEnsemble()
-{
-    for (auto *a : ensemble_algorithms)
+void Solver::clearEnsemble() {
+    for (auto* a : ensemble_algorithms)
         delete (a);
     ensemble_algorithms.clear();
 }
@@ -436,8 +403,7 @@ void Solver::clearEnsemble()
  *
  * @param criteria - Ranking criteria.
  */
-void Solver::rankSolutions(std::string criteria)
-{
+void Solver::rankSolutions(std::string criteria) {
     if (criteria == RANK_OBJECTIVE)
         std::sort(solutions.begin(), solutions.end(), less_than_objective());
 }
@@ -448,8 +414,7 @@ void Solver::rankSolutions(std::string criteria)
  * @param id - Id of the solution to get.
  * @return Path* - Solution Path object (pointer).
  */
-Path *Solver::getSolution(int id)
-{
+Path* Solver::getSolution(int id) {
     return id < solutions.size() ? &solutions[id] : nullptr;
 }
 
@@ -459,8 +424,7 @@ Path *Solver::getSolution(int id)
  * @param id - Id of the solution from which retrieve the status.
  * @return int - Solution status.
  */
-int Solver::getSolutionStatus(int id)
-{
+int Solver::getSolutionStatus(int id) {
     return id < solutions.size() ? solutions[id].getStatus() : PATH_UNKNOWN;
 }
 
@@ -470,8 +434,7 @@ int Solver::getSolutionStatus(int id)
  * @param id - Id of the solution from which retrieve the objective.
  * @return int - Solution objective.
  */
-int Solver::getSolutionObjective(int id)
-{
+int Solver::getSolutionObjective(int id) {
     return id < solutions.size() ? solutions[id].getObjective() : UNKNOWN;
 }
 
@@ -481,8 +444,7 @@ int Solver::getSolutionObjective(int id)
  * @param id - Id of the solution from which retrieve Arc Cost.
  * @return int - Solution arc cost.
  */
-int Solver::getSolutionArcCost(int id)
-{
+int Solver::getSolutionArcCost(int id) {
     return id < solutions.size() ? solutions[id].getArcCost() : UNKNOWN;
 }
 
@@ -492,8 +454,7 @@ int Solver::getSolutionArcCost(int id)
  * @param id - Id of the solution from which retrieve node cost.
  * @return int - Solution node cost.
  */
-int Solver::getSolutionNodeCost(int id)
-{
+int Solver::getSolutionNodeCost(int id) {
     return id < solutions.size() ? solutions[id].getNodeCost() : UNKNOWN;
 }
 
@@ -503,8 +464,7 @@ int Solver::getSolutionNodeCost(int id)
  * @param id - Position of the solution from which the tour is retrieved.
  * @return std::vector<int> - Solution tour.
  */
-std::vector<int> Solver::getSolutionTour(int id)
-{
+std::vector<int> Solver::getSolutionTour(int id) {
     if (id >= solutions.size())
         return {};
 
@@ -519,8 +479,7 @@ std::vector<int> Solver::getSolutionTour(int id)
  * @param id - Position of the solution from which retrieve solution tour as string.
  * @return std::string - Solution tour as string.
  */
-std::string Solver::getSolutionTourAsString(int id)
-{
+std::string Solver::getSolutionTourAsString(int id) {
     return id < solutions.size() ? solutions[id].getTourAsString() : "";
 }
 
@@ -530,8 +489,7 @@ std::string Solver::getSolutionTourAsString(int id)
  * @param pool_size - Number of top solutions to return.
  * @return std::vector<Path> - Vector of solutions.
  */
-std::vector<Path> Solver::getBestSolutions(int pool_size)
-{
+std::vector<Path> Solver::getBestSolutions(int pool_size) {
     rankSolutions(RANK_OBJECTIVE);
 
     if (pool_size >= solutions.size())
@@ -547,8 +505,7 @@ std::vector<Path> Solver::getBestSolutions(int pool_size)
  *
  * @return Path - Best solution found.
  */
-Path Solver::getBestSolution()
-{
+Path Solver::getBestSolution() {
     if (solutions.empty())
         return Path();
 
@@ -561,8 +518,7 @@ Path Solver::getBestSolution()
 /**
  * Prints problem and algorithm status.
  */
-void Solver::printStatus()
-{
+void Solver::printStatus() {
     if (Parameters::getVerbosity() < 0)
         return;
 
@@ -576,8 +532,7 @@ void Solver::printStatus()
 /**
  * Prints best solution found.
  */
-void Solver::printBestSolution()
-{
+void Solver::printBestSolution() {
     if (Parameters::getVerbosity() > 0)
         std::cout << "Best solution found:" << std::endl;
 
@@ -590,17 +545,15 @@ void Solver::printBestSolution()
 /**
  * Prints ensemble status.
  */
-void Solver::printEnsembleStatus()
-{
-    for (auto &algo : ensemble_algorithms)
+void Solver::printEnsembleStatus() {
+    for (auto& algo : ensemble_algorithms)
         algo->printStatus();
 }
 
 /**
  * Prints node costs.
  */
-void Solver::printNodeCosts()
-{
+void Solver::printNodeCosts() {
     for (int i = 0; i < problem->getNumNodes(); i++)
         std::cout << i << ") " << problem->getObj()->getNodeCost(i) << " ";
     std::cout << std::endl;

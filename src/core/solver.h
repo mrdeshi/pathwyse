@@ -1,16 +1,15 @@
 #ifndef PWSOLVER_H
 #define PWSOLVER_H
 
-#include "data/problem.h"
-#include "data/path.h"
-#include "algorithms/dynamic_programming/PW_default/PW_default.h"
 #include "algorithms/dynamic_programming/PW_acyclic/PW_acyclic.h"
+#include "algorithms/dynamic_programming/PW_default/PW_default.h"
+#include "algorithms/euristics/simulated_annealing.h"
 #include "algorithms/euristics/tabusearch.h"
+#include "data/path.h"
+#include "data/problem.h"
 
-class Solver
-{
-
-public:
+class Solver {
+   public:
     /** Solver management **/
     Solver();
     ~Solver();
@@ -28,9 +27,9 @@ public:
     void setConsoleVerbosity(int verbosity);
 
     /** Problem management **/
-    void readProblem(std::string file_name = ""); // Use default problem/reader
-    void setCustomProblem(Problem &problem);      // Set a custom problem
-    Problem *getProblem() { return problem; }     // Get problem pointer
+    void readProblem(std::string file_name = "");  // Use default problem/reader
+    void setCustomProblem(Problem& problem);       // Set a custom problem
+    Problem* getProblem() { return problem; }      // Get problem pointer
     int getNumberOfNodes();
     void setInitCost(int cost);
     void setNodeCost(int id, int cost);
@@ -40,7 +39,7 @@ public:
 
     /** Algorithms management **/
     void setupAlgorithms();
-    Algorithm *createAlgorithm(std::string name);
+    Algorithm* createAlgorithm(std::string name);
 
     // Algorithms: setters (name)
     void setMainAlgorithm(std::string name);
@@ -49,8 +48,8 @@ public:
     void changeEnsembleAlgorithm(int id, std::string name);
 
     // Algorithm: getters (pointer)
-    Algorithm *getMainAlgorithm() { return main_algorithm; }
-    Algorithm *getEnsembleAlgorithm(int id);
+    Algorithm* getMainAlgorithm() { return main_algorithm; }
+    Algorithm* getEnsembleAlgorithm(int id);
 
     // Solve Problem with selected Algorithms
     void solve();
@@ -69,7 +68,7 @@ public:
     /** Solution management **/
     int getNumberOfSolutions() { return solutions.size(); }
     void rankSolutions(std::string criteria = "objective");
-    Path *getSolution(int id);
+    Path* getSolution(int id);
     int getSolutionStatus(int id);
     int getSolutionObjective(int id);
     int getSolutionArcCost(int id);
@@ -91,24 +90,24 @@ public:
     bool isEnsembleUsed() { return use_ensemble; }
     void useEnsemble(bool use_ensemble) { this->use_ensemble = use_ensemble; }
 
-private:
+   private:
     // Solver
-    std::string solver_version; // PathWyse version number
-    int solver_status;          // Solver status
-    int optimization_round;     // Optimization round
+    std::string solver_version;  // PathWyse version number
+    int solver_status;           // Solver status
+    int optimization_round;      // Optimization round
 
     // Problem
-    Problem *problem;             // Problem
-    std::string default_instance; // Instance name
+    Problem* problem;              // Problem
+    std::string default_instance;  // Instance name
 
     // Main Algorithm
-    Algorithm *main_algorithm;       // Main algorithm
-    std::string main_algorithm_name; // Main algorithm name
+    Algorithm* main_algorithm;        // Main algorithm
+    std::string main_algorithm_name;  // Main algorithm name
 
     // Ensemble Algorithms
     bool use_ensemble;
-    std::vector<Algorithm *> ensemble_algorithms;       // Ensemble algorithms
-    std::vector<std::string> ensemble_algorithms_names; // Ensemble algorithms names
+    std::vector<Algorithm*> ensemble_algorithms;         // Ensemble algorithms
+    std::vector<std::string> ensemble_algorithms_names;  // Ensemble algorithms names
 
     // Solutions
     std::vector<Path> solutions;

@@ -6,6 +6,11 @@
 // collectSoluton(id)
 //
 
+// Neighbourhood
+bool MetaHeuristic::is_switch_equal(Switch a, Switch b) {
+    return (a.a == b.a && a.b == b.b) || (a.a == b.b && a.b == b.a);
+}
+
 MetaHeuristic::MetaHeuristic(std::string name, Problem* problem)
     : Algorithm(name, problem) {
     termination = false;

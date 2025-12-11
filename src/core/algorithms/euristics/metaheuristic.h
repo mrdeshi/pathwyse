@@ -14,6 +14,18 @@ class MetaHeuristic : public Algorithm {
     Path construct(std::vector<int> nodes);
 
    public:
+    // Neighbourhood
+    struct Switch {
+        int a;
+        int b;
+        bool operator==(const Switch& other) const {
+            // Compare values
+            return (a == other.a && b == other.b) || (a == other.b && b == other.a);
+        }
+    };
+
+    bool is_switch_equal(Switch a, Switch b);
+
     /** Algorithm management **/
     // Constructors and destructors
     MetaHeuristic(std::string name, Problem* problem);

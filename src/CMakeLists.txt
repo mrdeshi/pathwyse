@@ -65,6 +65,8 @@ set(
         core/algorithms/euristics/metaheuristic.cpp
         core/algorithms/euristics/tabusearch.h
         core/algorithms/euristics/tabusearch.cpp
+        core/algorithms/euristics/simulated_annealing.h
+        core/algorithms/euristics/simulated_annealing.cpp
         
 
         core/utils/bitset.h

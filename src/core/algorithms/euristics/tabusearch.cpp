@@ -2,6 +2,7 @@
 
 #define TABU_SIZE 50
 #define TRIES 1000000000
+#include <algorithm>
 
 // UTILS
 // collectSoluton(id)
@@ -15,15 +16,9 @@ TabuSearch::~TabuSearch() {
 }
 
 // tabu
-
-bool TabuSearch::is_switch_equal(Switch a, Switch b) {
-    return (a.a == b.a && a.b == b.b) || (a.a == b.b && a.b == b.a);
-}
-
 bool TabuSearch::isSwitch_inTabu(Switch s) {
     return (std::find(tabu.begin(), tabu.end(), s) != tabu.end());
 }
-
 // simply impute i is to be swapped with node -> swap if new path is better
 bool TabuSearch::swap(std::vector<int> nodes, int i, int node) {
     // cannot switch s or t obv
@@ -40,20 +35,15 @@ bool TabuSearch::swap(std::vector<int> nodes, int i, int node) {
     int before_swap_resource = resource->getArcCost(nodes[i - 1], nodes[i]) + resource->getArcCost(nodes[i], nodes[i + 1]) + resource->getNodeCost(nodes[i]);
     int after_swap_resource = resource->getArcCost(nodes[i - 1], node) + resource->getArcCost(node, nodes[i - 1]) + resource->getNodeCost(node);
 
-    int ic = consumption->getNodeCost(nodes[i]);
-    int nodec = consumption->getNodeCost(node);
+    int swap_cost = consumption->getNodeCost(nodes[i]);
+    int node_cost = consumption->getNodeCost(node);
 
     int delta = before_swap_resource - after_swap_resource;
-
-    int r = computeResult(nodes);
-    nodes[i] = node;
-
-    int a = computeResult(nodes);
 
     // printf("before: %d after: %d -> delta=%d\n", r, a, r - a);
 
     // good choice
-    if (delta > 0 && nodec < ic) {
+    if (delta > 0 && node_cost < swap_cost) {
         Switch change;
         change.a = nodes[i];
         change.b = node;
