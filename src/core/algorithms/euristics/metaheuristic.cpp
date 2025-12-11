@@ -19,7 +19,7 @@ MetaHeuristic::MetaHeuristic(std::string name, Problem* problem)
     consumption = problem->getRes(0);  // consumption will decrease in node visit
     maxConsumption = consumption->getUB();
 
-    resource = problem->getObj();
+    cost = problem->getObj();
     initDataCollection();
 }
 
@@ -89,6 +89,88 @@ bool MetaHeuristic::verifier(std::vector<int> nodes) {
     return true;
 }
 
+static std::vector<int> hardSolution() {
+    // 0 6 32 14 27 12 2 24 51 41 34 54
+    std::vector<int> v;
+    v.push_back(0);
+    v.push_back(6);
+    v.push_back(32);
+    v.push_back(14);
+    v.push_back(27);
+    v.push_back(12);
+    v.push_back(2);
+    v.push_back(24);
+    v.push_back(51);
+    v.push_back(41);
+    v.push_back(34);
+    v.push_back(54);
+    return v;
+}
+
+std::vector<int> MetaHeuristic::greedySolution() {
+    std::srand(std::time({}));
+    std::vector<int> rNodes;
+
+    int maxNodes = problem->getNumNodes();
+    int tries = 0;
+
+    // check feasible & elementary
+    do {
+        rNodes.clear();
+        rNodes.push_back(s);
+
+        // paga arco guadagna nodo problem->getObj();
+
+        // check feasible & elementarity
+        // constraint: cost 0 -> only one
+
+        // choose next candidate node
+        int cap = 0;
+
+        while (!(rNodes.back() == t)) {
+            int candidate;
+            if (cap > maxConsumption || rNodes.size() == maxNodes - 1) {
+                rNodes.pop_back();
+                candidate = t;
+            } else {
+                std::vector<int> candidates = problem->getNeighbors(rNodes.back(), true);
+
+                if (Parameters::getVerbosity() >= 4) {
+                    printf("candidates next to %d: ", rNodes.back());
+                    for (size_t i = 0; i < candidates.size(); i++) {
+                        printf("%d - ", candidates[i]);
+                    }
+                    printf("\n");
+                }
+
+                do {
+                    candidate = candidates[std::rand() % candidates.size()];
+                    for (size_t i = 0; i < candidates.size(); i++) {
+                        int a = cost->getArcCost(rNodes.back(), candidates[i]) + cost->getNodeCost(candidates[i]);
+                        int b = cost->getArcCost(rNodes.back(), candidate) + cost->getNodeCost(candidate);
+                        if (a < b && !isIn(candidates[i], rNodes)) {
+                            candidate = candidates[i];
+                        }
+                    }
+                } while (isIn(candidate, rNodes));
+
+                cap = cap + consumption->getNodeCost(candidate);
+            }
+
+            rNodes.push_back(candidate);
+        }
+
+    } while (!verifier(rNodes));
+
+    printf("\n=================TRY================ lenght:%d\n", rNodes.size());
+
+    for (size_t i = 0; i < rNodes.size(); i++) {
+        printf("%d -> ", rNodes[i]);
+    }
+
+    return rNodes;
+}
+
 std::vector<int> MetaHeuristic::randomSolution(int lenght) {
     std::srand(std::time({}));
     std::vector<int> rNodes;
@@ -110,7 +192,7 @@ std::vector<int> MetaHeuristic::randomSolution(int lenght) {
         // paga arco guadagna nodo problem->getObj();
 
         // check feasible & elementarity
-        // constraint: resource 0 -> only one
+        // constraint: cost 0 -> only one
 
         // choose next candidate node
         int cap = 0;
@@ -156,9 +238,9 @@ int MetaHeuristic::computeResult(std::vector<int> nodes) {
     int result = 0;
 
     for (size_t i = 0; i < nodes.size() - 1; i++) {
-        result = result + resource->getNodeCost(nodes[i]) + resource->getArcCost(nodes[i], nodes[i + 1]);
+        result = result + cost->getNodeCost(nodes[i]) + cost->getArcCost(nodes[i], nodes[i + 1]);
     }
-    result = result + resource->getNodeCost(nodes[nodes.size() - 1]);
+    result = result + cost->getNodeCost(nodes[nodes.size() - 1]);
     return result;
 }
 
@@ -172,7 +254,7 @@ Path MetaHeuristic::construct(std::vector<int> nodes) {
 }
 
 void MetaHeuristic::initAlgorithm() {
-    std::vector<int> randomNodes = randomSolution(-1);  // test others
+    std::vector<int> randomNodes = greedySolution();  // randomSolution(-1);  // test others
     dyn = randomNodes;
     Path firstRandomPath = construct(randomNodes);
     addSolution(firstRandomPath);

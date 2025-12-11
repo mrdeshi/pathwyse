@@ -42,13 +42,13 @@ bool SimulatedAnnealing::swap(std::vector<int> nodes, int i, int node) {
     //   return false;
     //}
 
-    int before_swap_resource = resource->getArcCost(nodes[i - 1], nodes[i]) + resource->getArcCost(nodes[i], nodes[i + 1]) + resource->getNodeCost(nodes[i]);
-    int after_swap_resource = resource->getArcCost(nodes[i - 1], node) + resource->getArcCost(node, nodes[i - 1]) + resource->getNodeCost(node);
+    int before_swap_cost = cost->getArcCost(nodes[i - 1], nodes[i]) + cost->getArcCost(nodes[i], nodes[i + 1]) + cost->getNodeCost(nodes[i]);
+    int after_swap_cost = cost->getArcCost(nodes[i - 1], node) + cost->getArcCost(node, nodes[i - 1]) + cost->getNodeCost(node);
 
     int swap_cost = consumption->getNodeCost(nodes[i]);
     int node_cost = consumption->getNodeCost(node);
 
-    float delta = before_swap_resource - after_swap_resource;
+    float delta = before_swap_cost - after_swap_cost;
 
     // int r = computeResult(nodes);
     // nodes[i] = node;

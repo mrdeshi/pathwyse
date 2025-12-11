@@ -9,6 +9,7 @@ class MetaHeuristic : public Algorithm {
     bool termination;
     bool checkTermination();
     std::vector<int> randomSolution(int lenght);
+    std::vector<int> greedySolution();
     bool verifier(std::vector<int> nodes);
     virtual bool swap(std::vector<int> nodes, int i, int node) = 0;
     Path construct(std::vector<int> nodes);
@@ -45,7 +46,7 @@ class MetaHeuristic : public Algorithm {
     int s;
     int t;
     Resource* consumption;
-    Resource* resource;
+    Resource* cost;
     int maxConsumption;
     int computeResult(std::vector<int> nodes);
 };
