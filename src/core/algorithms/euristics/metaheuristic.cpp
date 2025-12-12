@@ -1,6 +1,8 @@
 #include "metaheuristic.h"
 
 #define TRIES 1000000000
+#define MAX_INSERT 20
+#define EXECUTION_TIME 5
 
 // UTILS
 // collectSoluton(id)
@@ -48,6 +50,35 @@ static bool noCommons(std::vector<int> a, std::vector<int> b) {
     }
     return true;
 }
+
+bool MetaHeuristic::insert(std::vector<int> nodes, int i, int node) {
+    if (node == s || node == t) {
+        return false;
+    }
+
+    int before_swap_cost = cost->getArcCost(nodes[i - 1], nodes[i]);
+    int after_swap_cost = cost->getArcCost(nodes[i - 1], node) + cost->getArcCost(node, nodes[i]) + cost->getNodeCost(node);
+
+    int total_consumption = 0;
+    for (size_t i = 0; i < nodes.size(); i++) {
+        total_consumption = total_consumption + consumption->getNodeCost(nodes[i]);
+    }
+
+    int node_consumption = consumption->getNodeCost(node);
+
+    int delta = before_swap_cost - after_swap_cost;
+
+    // printf("before: %d after: %d -> delta=%d\n", r, a, r - a);
+
+    // good choice
+    if (delta > 0 && (node_consumption + total_consumption) < consumption->getUB()) {
+        return true;
+    }
+    // bad change
+    else {
+        return false;
+    }
+};
 
 bool MetaHeuristic::verifier(std::vector<int> nodes) {
     int size = nodes.size();
@@ -276,7 +307,7 @@ void MetaHeuristic::resetAlgorithm(int reset_level) {
 bool MetaHeuristic::checkTermination() {
     //((results[best_solution_id - 1] - results[best_solution_id]) < 2) ||
     // printf("%f\n", collector.getGlobalTimeNow());
-    if (collector.getGlobalTimeNow() > 2.0f) {
+    if (collector.getGlobalTimeNow() > EXECUTION_TIME) {
         return true;
     }
     return false;
@@ -324,6 +355,32 @@ void MetaHeuristic::solve() {
                 }
                 solutions.push_back(r);
                 updateBestSolution(solutions.size() - 1);
+            }
+        }
+
+        if (swaps % 1000 == 0) {
+            i = rand() % dyn.size();
+            int insert_candidate;
+            int c = 0;
+            do {
+                insert_candidate = rand() % (problem->getNumNodes());
+                c++;
+            } while (!insert(dyn, i, insert_candidate) && c < MAX_INSERT);
+
+            if (insert(dyn, i, insert_candidate)) {
+                // insert in array and shift
+
+                std::vector<int> tmp_v;
+
+                for (size_t j = 0; j < i; j++) {  // to i-1
+                    tmp_v.push_back(dyn[j]);
+                }
+                tmp_v.push_back(insert_candidate);
+                for (size_t k = i; k < dyn.size(); k++) {
+                    tmp_v.push_back(dyn[k]);
+                }
+                dyn = tmp_v;
+                printf("INSERTION %d\n", dyn.size());
             }
         }
 

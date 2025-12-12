@@ -1,5 +1,8 @@
 #include "tabusearch.h"
 
+// choices
+// only insert,
+
 #define TABU_SIZE 50
 #define TRIES 1000000000
 #include <algorithm>
@@ -19,6 +22,7 @@ TabuSearch::~TabuSearch() {
 bool TabuSearch::isSwitch_inTabu(Switch s) {
     return (std::find(tabu.begin(), tabu.end(), s) != tabu.end());
 }
+
 // simply impute i is to be swapped with node -> swap if new path is better
 bool TabuSearch::swap(std::vector<int> nodes, int i, int node) {
     // cannot switch s or t obv

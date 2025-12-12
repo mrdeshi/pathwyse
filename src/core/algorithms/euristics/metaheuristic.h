@@ -12,6 +12,7 @@ class MetaHeuristic : public Algorithm {
     std::vector<int> greedySolution();
     bool verifier(std::vector<int> nodes);
     virtual bool swap(std::vector<int> nodes, int i, int node) = 0;
+    bool insert(std::vector<int> nodes, int i, int node);
     Path construct(std::vector<int> nodes);
 
    public:

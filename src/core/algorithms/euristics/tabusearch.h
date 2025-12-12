@@ -4,7 +4,7 @@
 #include "metaheuristic.h"
 
 class TabuSearch : public MetaHeuristic {
-     private:
+   private:
     bool isSwitch_inTabu(Switch s);
     bool swap(std::vector<int> nodes, int i, int node) override;
     std::list<Switch> tabu;
