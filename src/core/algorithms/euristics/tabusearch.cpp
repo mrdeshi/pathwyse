@@ -3,7 +3,7 @@
 // choices
 // only insert,
 
-#define TABU_SIZE 50
+#define TABU_SIZE 500
 #define TRIES 1000000000
 #include <algorithm>
 

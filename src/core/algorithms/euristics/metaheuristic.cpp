@@ -1,12 +1,17 @@
 #include "metaheuristic.h"
 
 #define TRIES 1000000000
-#define MAX_INSERT 20
+#define MAX_INSERT 2000000
+#define SWAP_INSERT_RATIO 1000
 #define EXECUTION_TIME 5
+
+#define LAZY_TRIES 2000000000000
 
 // UTILS
 // collectSoluton(id)
 //
+
+static unsigned int lazy_counter = 0;
 
 // Neighbourhood
 bool MetaHeuristic::is_switch_equal(Switch a, Switch b) {
@@ -310,6 +315,10 @@ bool MetaHeuristic::checkTermination() {
     if (collector.getGlobalTimeNow() > EXECUTION_TIME) {
         return true;
     }
+    if (lazy_counter >= LAZY_TRIES) {
+        return true;
+    }
+
     return false;
 }
 
@@ -322,7 +331,7 @@ void MetaHeuristic::solve() {
     initAlgorithm();
     collector.startGlobalTime();
     std::srand(std::time({}));
-    int swaps = 0;
+    int swaps = 1;
     int lenght = dyn.size();
     do {
         // candidate selection
@@ -345,6 +354,7 @@ void MetaHeuristic::solve() {
         }
 
         if (swap(dyn, i, candidate)) {
+            lazy_counter = 0;
             swaps++;
             dyn[i] = candidate;
 
@@ -356,9 +366,11 @@ void MetaHeuristic::solve() {
                 solutions.push_back(r);
                 updateBestSolution(solutions.size() - 1);
             }
+        } else {
+            lazy_counter++;
         }
 
-        if (swaps % 1000 == 0) {
+        if (swaps % SWAP_INSERT_RATIO == 0) {
             i = rand() % dyn.size();
             int insert_candidate;
             int c = 0;
