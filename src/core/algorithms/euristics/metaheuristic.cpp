@@ -295,6 +295,7 @@ void MetaHeuristic::initAlgorithm() {
     Path firstRandomPath = construct(randomNodes);
     addSolution(firstRandomPath);
     updateBestSolution(0);
+    printf("START WITH OBJ=%d\n", firstRandomPath.getObjective());
 }
 
 void MetaHeuristic::resetAlgorithm(int reset_level) {
