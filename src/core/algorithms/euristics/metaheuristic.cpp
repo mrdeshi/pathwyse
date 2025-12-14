@@ -5,7 +5,7 @@
 #define SWAP_INSERT_RATIO 1000
 #define EXECUTION_TIME 5
 
-#define LAZY_TRIES 2000000000000
+#define LAZY_TRIES 2000
 
 // UTILS
 // collectSoluton(id)
@@ -340,9 +340,25 @@ void MetaHeuristic::solve() {
         int i = rand() % dyn.size();
         int candidate = rand() % (problem->getNumNodes());
 
+        std::vector<int> candidates = problem->getNeighbors(dyn[i], true);
+
+        do {
+            candidate = candidates[std::rand() % candidates.size()];
+            for (size_t j = 0; j < candidates.size(); j++) {
+                int a = cost->getArcCost(dyn[i], candidates[j]) + cost->getNodeCost(candidates[j]);
+                int b = cost->getArcCost(dyn[i], candidate) + cost->getNodeCost(candidate);
+                if (a < b && !isIn(candidates[j], dyn)) {
+                    candidate = candidates[j];
+                }
+            }
+        } while (isIn(candidate, dyn));
+
         if (dyn[i] == candidate || (isIn(candidate, dyn))) {
+            printf("bad\n");
             continue;
         }
+
+        // end candidate selection
         iterations++;
 
         if (Parameters::getVerbosity() >= 4) {
