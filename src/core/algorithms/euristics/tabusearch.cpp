@@ -3,7 +3,7 @@
 // choices
 // only insert,
 
-#define TABU_SIZE 500
+#define TABU_SIZE 50
 #define TRIES 1000000000
 #include <algorithm>
 
@@ -37,7 +37,7 @@ bool TabuSearch::swap(std::vector<int> nodes, int i, int node) {
     //}
 
     int before_swap_cost = cost->getArcCost(nodes[i - 1], nodes[i]) + cost->getArcCost(nodes[i], nodes[i + 1]) + cost->getNodeCost(nodes[i]);
-    int after_swap_cost = cost->getArcCost(nodes[i - 1], node) + cost->getArcCost(node, nodes[i - 1]) + cost->getNodeCost(node);
+    int after_swap_cost = cost->getArcCost(nodes[i - 1], node) + cost->getArcCost(node, nodes[i + 1]) + cost->getNodeCost(node);
 
     int swap_cost = consumption->getNodeCost(nodes[i]);
     int node_cost = consumption->getNodeCost(node);

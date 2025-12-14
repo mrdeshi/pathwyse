@@ -359,8 +359,9 @@ void MetaHeuristic::solve() {
             dyn[i] = candidate;
 
             Path r = construct(dyn);
+            printf("SWAPPED, r=%d\n", r.getObjective());
             if (r.getObjective() < getBestSolution()->getObjective()) {
-                if (Parameters::getVerbosity() >= 4) {
+                if (Parameters::getVerbosity() >= 3) {
                     printf("new solution:= %d\n", r.getObjective());
                 }
                 solutions.push_back(r);
