@@ -108,7 +108,6 @@ void Parameters::readParameters(std::string param_path) {
                 execution_time = stoi(value);
             else if (command == "sleep") {
                 sleep = stoi(value);
-                printf("FUND\n\n");
             } else if (command == "candidate_skip")
                 candidate_skip = stoi(value);
             else if (command == "lazy_tries")

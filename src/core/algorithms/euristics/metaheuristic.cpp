@@ -2,13 +2,13 @@
 
 #include <unistd.h>
 
-static unsigned int TRIES = Parameters::getTries();
-static unsigned int MAX_INSERT = Parameters::maxInsert();
-static unsigned int LAZY_ITERATIONS_SWAP_RATIO = Parameters::lazyIterationsSwapRatio();
-static unsigned int EXECUTION_TIME = Parameters::executionTime();
-static unsigned int SLEEP = Parameters::getSleep();
-static unsigned int CANDIDATE_SKIP = Parameters::candidateSkip();
-static unsigned int LAZY_TRIES = Parameters::lazyTries();
+static unsigned int TRIES;
+static unsigned int MAX_INSERT;
+static unsigned int LAZY_ITERATIONS_SWAP_RATIO;
+static unsigned int EXECUTION_TIME;
+static unsigned int SLEEP;
+static unsigned int CANDIDATE_SKIP;
+static unsigned int LAZY_TRIES;
 
 // UTILS
 //
@@ -23,6 +23,14 @@ bool MetaHeuristic::is_switch_equal(Switch a, Switch b) {
 
 MetaHeuristic::MetaHeuristic(std::string name, Problem* problem)
     : Algorithm(name, problem) {
+    TRIES = Parameters::getTries();
+    MAX_INSERT = Parameters::maxInsert();
+    LAZY_ITERATIONS_SWAP_RATIO = Parameters::lazyIterationsSwapRatio();
+    EXECUTION_TIME = Parameters::executionTime();
+    SLEEP = Parameters::getSleep();
+    CANDIDATE_SKIP = Parameters::candidateSkip();
+    LAZY_TRIES = Parameters::lazyTries();
+
     termination = false;
     s = problem->getOrigin();
     t = problem->getDestination();
@@ -364,11 +372,9 @@ void MetaHeuristic::solve() {
                 continue;
             }
 
-        } while (isIn(candidate, dyn));
+        } while (isIn(candidate, dyn) && !verifier(dyn));
 
         if (dyn[i] == candidate || (isIn(candidate, dyn))) {
-            printf("bad\n");
-
             continue;
         }
 
@@ -410,7 +416,7 @@ void MetaHeuristic::solve() {
                 i = rand() % dyn.size();
                 insert_candidate = rand() % (problem->getNumNodes());
                 c++;
-            } while (!insert(dyn, i, insert_candidate, dyn_total_resource) && c < MAX_INSERT);
+            } while (!insert(dyn, i, insert_candidate, dyn_total_resource) && c < MAX_INSERT && !verifier(dyn));
 
             if (insert(dyn, i, insert_candidate, dyn_total_resource)) {
                 // insert in array and shift

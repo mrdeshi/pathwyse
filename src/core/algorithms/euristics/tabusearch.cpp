@@ -6,12 +6,13 @@
 #include <algorithm>
 
 // UTILS
-static int TABU_SIZE = Parameters::tabuSize();
+static int TABU_SIZE;
 // collectSoluton(id)
 //
 
 TabuSearch::TabuSearch(std::string name, Problem* problem)
     : MetaHeuristic(name, problem) {
+    TABU_SIZE = Parameters::tabuSize();
 }
 
 TabuSearch::~TabuSearch() {
