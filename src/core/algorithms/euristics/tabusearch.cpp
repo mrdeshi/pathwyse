@@ -3,11 +3,10 @@
 // choices
 // only insert,
 
-#define TABU_SIZE 50
-#define TRIES 1000000000
 #include <algorithm>
 
 // UTILS
+static int TABU_SIZE = Parameters::tabuSize();
 // collectSoluton(id)
 //
 
@@ -42,12 +41,21 @@ bool TabuSearch::swap(std::vector<int> nodes, int i, int node) {
     int swap_cost = consumption->getNodeCost(nodes[i]);
     int node_cost = consumption->getNodeCost(node);
 
+    int tot = 0;
+    for (size_t c = 0; c < nodes.size(); c++) {
+        if (c == i) {
+            tot = tot + consumption->getNodeCost(node);
+        } else {
+            tot = tot + consumption->getNodeCost(nodes[i]);
+        }
+    }
+
     int delta = before_swap_cost - after_swap_cost;
 
     // printf("before: %d after: %d -> delta=%d\n", r, a, r - a);
 
     // good choice
-    if (delta > 0 && node_cost < swap_cost) {
+    if (delta > 0 && tot < consumption->getUB()) {
         Switch change;
         change.a = nodes[i];
         change.b = node;
@@ -60,7 +68,7 @@ bool TabuSearch::swap(std::vector<int> nodes, int i, int node) {
 
         tabu.push_back(change);
         if (tabu.size() == TABU_SIZE + 1) {
-            // printf("TABU MAX\n");
+            printf("TABU MAX\n");
             tabu.pop_front();
         }
         return true;

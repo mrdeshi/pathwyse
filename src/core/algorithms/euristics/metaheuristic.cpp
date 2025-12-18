@@ -1,17 +1,20 @@
 #include "metaheuristic.h"
 
-#define TRIES 1000000000
-#define MAX_INSERT 2000000
-#define SWAP_INSERT_RATIO 1000
-#define EXECUTION_TIME 5
+#include <unistd.h>
 
-#define LAZY_TRIES 2000
+static unsigned int TRIES = Parameters::getTries();
+static unsigned int MAX_INSERT = Parameters::maxInsert();
+static unsigned int LAZY_ITERATIONS_SWAP_RATIO = Parameters::lazyIterationsSwapRatio();
+static unsigned int EXECUTION_TIME = Parameters::executionTime();
+static unsigned int SLEEP = Parameters::getSleep();
+static unsigned int CANDIDATE_SKIP = Parameters::candidateSkip();
+static unsigned int LAZY_TRIES = Parameters::lazyTries();
 
 // UTILS
-// collectSoluton(id)
 //
 
 static unsigned int lazy_counter = 0;
+static unsigned int dyn_total_resource = 0;
 
 // Neighbourhood
 bool MetaHeuristic::is_switch_equal(Switch a, Switch b) {
@@ -56,22 +59,17 @@ static bool noCommons(std::vector<int> a, std::vector<int> b) {
     return true;
 }
 
-bool MetaHeuristic::insert(std::vector<int> nodes, int i, int node) {
+bool MetaHeuristic::insert(std::vector<int> nodes, int i, int node, int total_consumption) {
     if (node == s || node == t) {
         return false;
     }
 
-    int before_swap_cost = cost->getArcCost(nodes[i - 1], nodes[i]);
-    int after_swap_cost = cost->getArcCost(nodes[i - 1], node) + cost->getArcCost(node, nodes[i]) + cost->getNodeCost(node);
-
-    int total_consumption = 0;
-    for (size_t i = 0; i < nodes.size(); i++) {
-        total_consumption = total_consumption + consumption->getNodeCost(nodes[i]);
-    }
+    int before_insert_cost = cost->getArcCost(nodes[i - 1], nodes[i]);
+    int after_insert_cost = cost->getArcCost(nodes[i - 1], node) + cost->getArcCost(node, nodes[i]) + cost->getNodeCost(node);
 
     int node_consumption = consumption->getNodeCost(node);
 
-    int delta = before_swap_cost - after_swap_cost;
+    int delta = before_insert_cost - after_insert_cost;
 
     // printf("before: %d after: %d -> delta=%d\n", r, a, r - a);
 
@@ -79,7 +77,7 @@ bool MetaHeuristic::insert(std::vector<int> nodes, int i, int node) {
     if (delta > 0 && (node_consumption + total_consumption) < consumption->getUB()) {
         return true;
     }
-    // bad change
+    // bad insert
     else {
         return false;
     }
@@ -144,8 +142,8 @@ static std::vector<int> hardSolution() {
 }
 
 std::vector<int> MetaHeuristic::greedySolution() {
-    std::srand(std::time({}));
     std::vector<int> rNodes;
+    std::srand(std::time(NULL));
 
     int maxNodes = problem->getNumNodes();
     int tries = 0;
@@ -293,6 +291,12 @@ void MetaHeuristic::initAlgorithm() {
     std::vector<int> randomNodes = greedySolution();  // randomSolution(-1);  // test others
     dyn = randomNodes;
     Path firstRandomPath = construct(randomNodes);
+    int c = 0;
+    for (size_t i = 0; i < dyn.size(); i++) {
+        c = c + consumption->getNodeCost(dyn[i]);
+    }
+    dyn_total_resource = c;
+
     addSolution(firstRandomPath);
     updateBestSolution(0);
     printf("START WITH OBJ=%d\n", firstRandomPath.getObjective());
@@ -303,6 +307,8 @@ void MetaHeuristic::resetAlgorithm(int reset_level) {
     setStatus(ALGO_READY);
 
     solutions.clear();
+    lazy_counter = 0;
+    dyn_total_resource = 0;
 
     // Resets data collection and extra parameters
     collector.resetTimesCumulative();
@@ -311,12 +317,12 @@ void MetaHeuristic::resetAlgorithm(int reset_level) {
 }
 
 bool MetaHeuristic::checkTermination() {
-    //((results[best_solution_id - 1] - results[best_solution_id]) < 2) ||
-    // printf("%f\n", collector.getGlobalTimeNow());
     if (collector.getGlobalTimeNow() > EXECUTION_TIME) {
+        printf("termination by time\n");
         return true;
     }
     if (lazy_counter >= LAZY_TRIES) {
+        printf("termination by lazy\n");
         return true;
     }
 
@@ -331,19 +337,20 @@ void MetaHeuristic::solve() {
     setStatus(ALGO_OPTIMIZING);
     initAlgorithm();
     collector.startGlobalTime();
-    std::srand(std::time({}));
+    std::srand(std::time(NULL));
     int swaps = 1;
     int lenght = dyn.size();
     do {
+        sleep(SLEEP);
         // candidate selection
-
-        int i = rand() % dyn.size();
-        int candidate = rand() % (problem->getNumNodes());
+        size_t i = rand() % dyn.size();
+        int candidate;
 
         std::vector<int> candidates = problem->getNeighbors(dyn[i], true);
 
         do {
-            candidate = candidates[std::rand() % candidates.size()];
+            candidate = candidates[rand() % candidates.size()];
+
             for (size_t j = 0; j < candidates.size(); j++) {
                 int a = cost->getArcCost(dyn[i], candidates[j]) + cost->getNodeCost(candidates[j]);
                 int b = cost->getArcCost(dyn[i], candidate) + cost->getNodeCost(candidate);
@@ -351,10 +358,17 @@ void MetaHeuristic::solve() {
                     candidate = candidates[j];
                 }
             }
+
+            if (rand() % CANDIDATE_SKIP > 1) {
+                candidate = candidates[rand() % candidates.size()];  // restart
+                continue;
+            }
+
         } while (isIn(candidate, dyn));
 
         if (dyn[i] == candidate || (isIn(candidate, dyn))) {
             printf("bad\n");
+
             continue;
         }
 
@@ -373,6 +387,7 @@ void MetaHeuristic::solve() {
         if (swap(dyn, i, candidate)) {
             lazy_counter = 0;
             swaps++;
+            dyn_total_resource = dyn_total_resource - consumption->getNodeCost(dyn[i]) + consumption->getNodeCost(candidate);
             dyn[i] = candidate;
 
             Path r = construct(dyn);
@@ -381,25 +396,25 @@ void MetaHeuristic::solve() {
                 if (Parameters::getVerbosity() >= 3) {
                     printf("new solution:= %d\n", r.getObjective());
                 }
-                solutions.push_back(r);
-                updateBestSolution(solutions.size() - 1);
+                addSolution(r);
             }
         } else {
             lazy_counter++;
         }
 
-        if (swaps % SWAP_INSERT_RATIO == 0) {
-            i = rand() % dyn.size();
+        if (lazy_counter % LAZY_ITERATIONS_SWAP_RATIO == 0) {
+            printf("try insert\n");
             int insert_candidate;
             int c = 0;
             do {
+                i = rand() % dyn.size();
                 insert_candidate = rand() % (problem->getNumNodes());
                 c++;
-            } while (!insert(dyn, i, insert_candidate) && c < MAX_INSERT);
+            } while (!insert(dyn, i, insert_candidate, dyn_total_resource) && c < MAX_INSERT);
 
-            if (insert(dyn, i, insert_candidate)) {
+            if (insert(dyn, i, insert_candidate, dyn_total_resource)) {
                 // insert in array and shift
-
+                dyn_total_resource = dyn_total_resource + consumption->getNodeCost(insert_candidate);
                 std::vector<int> tmp_v;
 
                 for (size_t j = 0; j < i; j++) {  // to i-1
@@ -410,7 +425,16 @@ void MetaHeuristic::solve() {
                     tmp_v.push_back(dyn[k]);
                 }
                 dyn = tmp_v;
-                printf("INSERTION %d\n", dyn.size());
+
+                Path r = construct(dyn);
+                printf("insertion, r=%d\n", r.getObjective());
+                if (r.getObjective() < getBestSolution()->getObjective()) {
+                    if (Parameters::getVerbosity() >= 3) {
+                        printf("new solution:= %d\n", r.getObjective());
+                    }
+                    solutions.push_back(r);
+                    updateBestSolution(solutions.size() - 1);
+                }
             }
         }
 
