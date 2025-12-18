@@ -1,24 +1,18 @@
-#ifndef SIMULATED_ANNEALING
-#define SIMULATED_ANNEALING
+#ifndef TABU_S
+#define TABU_S
 
-#include "algorithms/algorithm.h"
+#include "metaheuristic.h"
 
-class TabuSearch : Algorithm
-{
-public:
+class TabuSearch : public MetaHeuristic {
+   private:
+    bool isSwitch_inTabu(Switch s);
+    bool swap(std::vector<int> nodes, int i, int node) override;
+    std::list<Switch> tabu;
+
+   public:
     /** Algorithm management **/
     // Constructors and destructors
-    TabuSearch(std::string name, Problem *problem);
+    TabuSearch(std::string name, Problem* problem);
     ~TabuSearch();
-
-    // Init and reset
-    void initAlgorithm();
-    void readConfiguration();
-
-    void resetAlgorithm(int reset_level) override;
-
-    // Solve
-    void solve() override;
 };
-
-#endif // SIMULATED_ANNEALING
+#endif  // TABU_S

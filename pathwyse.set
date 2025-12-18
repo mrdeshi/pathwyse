@@ -1,4 +1,8 @@
-verbosity = 2
+verbosity =3
+
+a=PWDefault
+b=TabuSearch
+c=SimulatedAnnealing
 
 problem/memory_threshold = 10000
 
@@ -13,7 +17,16 @@ problem/scaling/target = objective
 ensemble/algorithms = PWDefaultRelaxDom,PWDefaultRelaxQueue
 ensemble/active = 0
 
-main_algorithm = PWDefault
+main_algorithm = TabuSearch
+
+tries = 1000000000
+max_insert = 2000
+lazy_iterations_swap_ratio = 4000
+execution_time = 1
+sleep = 0
+candidate_skip = 3
+lazy_tries = 1000000
+tabu_size=50
 
 algo/default/autoconfig = 1
 algo/default/timelimit = 0
